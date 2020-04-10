@@ -299,7 +299,11 @@ void Director::drawScene()
 
     // draw the notifications node
     if (_notificationNode)
-    {
+    {   
+        if (_openGLView){
+            const auto& vp = _openGLView->getViewPortRect();
+            glViewport(vp.origin.x, vp.origin.y, vp.size.width, vp.size.height);
+        }
         _notificationNode->visit(_renderer, Mat4::IDENTITY, 0);
     }
 

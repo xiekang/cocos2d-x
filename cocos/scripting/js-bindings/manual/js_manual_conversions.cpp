@@ -2035,6 +2035,37 @@ jsval std_string_to_jsval(JSContext* cx, const std::string& v)
     return c_string_to_jsval(cx, v.c_str(), v.size());
 }
 
+jsval utf16_string_to_jsval(JSContext* cx, const std::string& str)
+{   
+    const char* v = str.c_str();
+    size_t length = str.size();
+    if (v == NULL)
+    {
+        return JSVAL_NULL;
+    }
+    if (length == -1)
+    {
+        length = strlen(v);
+    }
+
+    JSB_AUTOCOMPARTMENT_WITH_GLOBAL_OBJCET
+
+    if (0 == length)
+    {
+        auto emptyStr = JS_NewStringCopyZ(cx, "");
+        return STRING_TO_JSVAL(emptyStr);
+    }
+
+    jsval ret = JSVAL_NULL;
+
+    JSString* jsstr = JS_NewUCStringCopyN(cx, reinterpret_cast<const jschar*>(v), length/2);
+    if (jsstr){
+        ret = STRING_TO_JSVAL(jsstr);
+    }
+
+    return ret;
+}
+
 jsval c_string_to_jsval(JSContext* cx, const char* v, size_t length /* = -1 */)
 {
     if (v == NULL)
@@ -2072,14 +2103,18 @@ jsval c_string_to_jsval(JSContext* cx, const char* v, size_t length /* = -1 */)
         delete[] strUTF16;
     }
 #else
-    std::u16string strUTF16;
-    bool ok = StringUtils::UTF8ToUTF16(std::string(v, length), strUTF16);
+    // std::u16string strUTF16;
+    // bool ok = StringUtils::UTF8ToUTF16(std::string(v, length), strUTF16);
 
-    if (ok && !strUTF16.empty()) {
-        JSString* str = JS_NewUCStringCopyN(cx, reinterpret_cast<const jschar*>(strUTF16.data()), strUTF16.size());
-        if (str) {
-            ret = STRING_TO_JSVAL(str);
-        }
+    // if (ok && !strUTF16.empty()) {
+    //     JSString* str = JS_NewUCStringCopyN(cx, reinterpret_cast<const jschar*>(strUTF16.data()), strUTF16.size());
+    //     if (str) {
+    //         ret = STRING_TO_JSVAL(str);
+    //     }
+    // }
+    JSString* str = JS_NewStringCopyN(cx, v, length);
+    if (str){
+        ret = STRING_TO_JSVAL(str);
     }
 #endif
 

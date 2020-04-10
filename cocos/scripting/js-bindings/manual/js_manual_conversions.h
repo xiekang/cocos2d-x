@@ -282,6 +282,7 @@ jsval ulong_to_jsval(JSContext* cx, unsigned long v);
 jsval size_to_jsval(JSContext* cx, size_t v);
 jsval long_long_to_jsval(JSContext* cx, long long v);
 CC_JS_DLL jsval std_string_to_jsval(JSContext* cx, const std::string& v);
+CC_JS_DLL jsval utf16_string_to_jsval(JSContext* cx, const std::string& v);
 jsval c_string_to_jsval(JSContext* cx, const char* v, size_t length = -1);
 jsval ccpoint_to_jsval(JSContext* cx, const cocos2d::Point& v);
 jsval ccrect_to_jsval(JSContext* cx, const cocos2d::Rect& v);

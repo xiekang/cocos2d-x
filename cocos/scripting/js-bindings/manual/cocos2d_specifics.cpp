@@ -4243,7 +4243,53 @@ bool js_cocos2dx_CCFileUtils_getDataFromFile(JSContext *cx, uint32_t argc, jsval
         // return null if read failed.
         args.rval().set(JSVAL_NULL);
         return true;
-    }
+    };
+
+    do {
+        if (argc == 2) {
+            std::string arg0;
+            ok &= jsval_to_std_string(cx, args.get(0), &arg0);
+            if (!ok) { ok = true; break; }
+            std::function<void (Data)> arg1;
+            do {
+                if(JS_TypeOfValue(cx, args.get(1)) == JSTYPE_FUNCTION)
+                {
+                    JS::RootedObject jstarget(cx, args.thisv().toObjectOrNull());
+                    std::shared_ptr<JSFunctionWrapper> func(new JSFunctionWrapper(cx, jstarget, args.get(1), args.thisv()));
+                    auto lambda = [=](Data data) -> void {
+                        JSB_AUTOCOMPARTMENT_WITH_GLOBAL_OBJCET
+                        if (!data.isNull())
+                        {
+                            CCLOG("xiekang : C++");
+                            uint32_t size = static_cast<uint32_t>(data.getSize());
+                            JS::RootedObject array(cx, JS_NewUint8Array(cx, size));
+                            assert(nullptr != array);
+                                
+                            uint8_t* bufdata = (uint8_t*)JS_GetArrayBufferViewData(array);
+                            memcpy(bufdata, data.getBytes(), size*sizeof(uint8_t));
+                            jsval largv[1];
+                            largv[0] = OBJECT_TO_JSVAL(array);
+                            JS::RootedValue rval(cx);
+                            bool succeed = func->invoke(1, &largv[0], &rval);
+                            if (!succeed && JS_IsExceptionPending(cx)) {
+                                JS_ReportPendingException(cx);
+                            }                   
+                        }
+                    };
+                    arg1 = lambda;
+                }
+                else
+                {
+                    arg1 = nullptr;
+                }
+            } while(0);
+            if (!ok) { ok = true; break; }
+            cobj->getDataFromFile(arg0,arg1);
+            args.rval().setUndefined();
+            return true;
+        }
+    } while(0);
+
     JS_ReportError(cx, "wrong number of arguments: %d, was expecting %d", argc, 3);
     return false;
 }
@@ -4299,6 +4345,70 @@ bool js_cocos2dx_CCFileUtils_getSearchResolutionsOrder(JSContext *cx, uint32_t a
         return true;
     }
     JS_ReportError(cx, "wrong number of arguments: %d, was expecting %d", argc, 0);
+    return false;
+}
+
+bool js_cocos2dx_FileUtils_getUtf16StringFromFile(JSContext *cx, uint32_t argc, jsval *vp)
+{
+    bool ok = true;
+    cocos2d::FileUtils* cobj = nullptr;
+
+    JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+    JS::RootedObject obj(cx);
+    obj.set(args.thisv().toObjectOrNull());
+    js_proxy_t *proxy = jsb_get_js_proxy(obj);
+    cobj = (cocos2d::FileUtils *)(proxy ? proxy->ptr : nullptr);
+    JSB_PRECONDITION2( cobj, cx, false, "js_cocos2dx_FileUtils_getUtf16StringFromFile : Invalid Native Object");
+    do {
+        if (argc == 2) {
+            std::string arg0;
+            ok &= jsval_to_std_string(cx, args.get(0), &arg0);
+            if (!ok) { ok = true; break; }
+            std::function<void (std::string)> arg1;
+            do {
+                if(JS_TypeOfValue(cx, args.get(1)) == JSTYPE_FUNCTION)
+                {
+                    JS::RootedObject jstarget(cx, args.thisv().toObjectOrNull());
+                    std::shared_ptr<JSFunctionWrapper> func(new JSFunctionWrapper(cx, jstarget, args.get(1), args.thisv()));
+                    auto lambda = [=](std::string larg0) -> void {
+                        JSB_AUTOCOMPARTMENT_WITH_GLOBAL_OBJCET
+                        jsval largv[1];
+                        largv[0] = utf16_string_to_jsval(cx, larg0);
+                        JS::RootedValue rval(cx);
+                        bool succeed = func->invoke(1, &largv[0], &rval);
+                        if (!succeed && JS_IsExceptionPending(cx)) {
+                            JS_ReportPendingException(cx);
+                        }
+                    };
+                    arg1 = lambda;
+                }
+                else
+                {
+                    arg1 = nullptr;
+                }
+            } while(0)
+            ;
+            if (!ok) { ok = true; break; }
+            cobj->getStringFromFile(arg0, arg1);
+            args.rval().setUndefined();
+            return true;
+        }
+    } while(0);
+
+    do {
+        if (argc == 1) {
+            std::string arg0;
+            ok &= jsval_to_std_string(cx, args.get(0), &arg0);
+            if (!ok) { ok = true; break; }
+            std::string ret = cobj->getStringFromFile(arg0);
+            jsval jsret = JSVAL_NULL;
+            jsret = utf16_string_to_jsval(cx, ret);
+            args.rval().set(jsret);
+            return true;
+        }
+    } while(0);
+
+    JS_ReportError(cx, "js_cocos2dx_FileUtils_getUtf16StringFromFile : wrong number of arguments");
     return false;
 }
 
@@ -6141,6 +6251,8 @@ void register_cocos2dx_js_core(JSContext* cx, JS::HandleObject global)
     JS_DefineFunction(cx, tmpObj, "setSearchPaths", js_cocos2dx_CCFileUtils_setSearchPaths, 1, JSPROP_PERMANENT );
     JS_DefineFunction(cx, tmpObj, "getSearchPaths", js_cocos2dx_CCFileUtils_getSearchPaths, 0, JSPROP_PERMANENT );
     JS_DefineFunction(cx, tmpObj, "getSearchResolutionsOrder", js_cocos2dx_CCFileUtils_getSearchResolutionsOrder, 0, JSPROP_PERMANENT );
+    JS_DefineFunction(cx, tmpObj, "getUtf16StringFromFile",
+        js_cocos2dx_FileUtils_getUtf16StringFromFile, 1, JSPROP_PERMANENT | JSPROP_ENUMERATE);
     JS_DefineFunction(cx, tmpObj, "createDictionaryWithContentsOfFile", js_cocos2dx_FileUtils_createDictionaryWithContentsOfFile, 1, JSPROP_ENUMERATE | JSPROP_PERMANENT);
     JS_DefineFunction(cx, tmpObj, "getDataFromFile", js_cocos2dx_CCFileUtils_getDataFromFile, 1, JSPROP_ENUMERATE | JSPROP_PERMANENT);
     JS_DefineFunction(cx, tmpObj, "writeDataToFile", js_cocos2dx_CCFileUtils_writeDataToFile, 2, JSPROP_ENUMERATE | JSPROP_PERMANENT);
